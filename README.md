@@ -64,7 +64,7 @@ MindTune is an AI-powered prompt optimiser that transforms rough, unstructured i
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/mindtune.git
+https://github.com/Chiraag-v/MindTune.git
 cd mindtune
 ```
 
