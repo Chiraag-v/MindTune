@@ -15,7 +15,12 @@ export function useApiConfig() {
       .then((data) => setConfig(data as ApiConfigResponse))
       .catch(() =>
         setConfig({
-          providers: { google: false },
+          providers: {
+            google: false,
+            openai: false,
+            anthropic: false,
+            groq: false,
+          },
         }),
       );
   }, []);
@@ -24,4 +29,3 @@ export function useApiConfig() {
 
   return { config, hasServerKey };
 }
-

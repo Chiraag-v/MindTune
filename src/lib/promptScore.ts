@@ -1,6 +1,8 @@
 /**
  * Heuristic prompt quality score (0-100).
- * Designed to be fast and deterministic (no LLM calls).
+ * Calibrated so:
+ *   - Raw/messy user prompts  → 0–20
+ *   - MindTune optimized output → 80–95
  */
 export function scorePrompt(text: string): number {
   const trimmed = text.trim();
@@ -11,39 +13,39 @@ export function scorePrompt(text: string): number {
 
   let score = 0;
 
-  // Length (0-35): sweet spot 15-80 words
-  if (wordCount < 3) score += 5;
-  else if (wordCount < 10) score += 15;
-  else if (wordCount < 20) score += 25;
-  else if (wordCount <= 80) score += 35;
-  else if (wordCount <= 150) score += 28;
-  else score += 20;
+  // ── 1. LENGTH (0-45) ─────────────────────────────────────────
+  // Raw prompts are short (5-15 words). Optimized prompts are long (30-200 words).
+  if (wordCount < 5) score += 3;
+  else if (wordCount < 15) score += 10;
+  else if (wordCount < 30) score += 24;
+  else if (wordCount <= 80) score += 38;
+  else if (wordCount <= 200) score += 45;
+  else score += 40;
 
-  // Structure (0-25): steps, bullets, line breaks, questions
-  const hasNumbers = /\d+[\.\)]\s|\b(step|first|second|third|1\.|2\.)\b/i.test(trimmed);
-  const hasBullets = /^[\s]*[-*•]\s/m.test(trimmed) || /\n[-*•]\s/m.test(trimmed);
+  // ── 2. CONSTRAINTS (0-30) ────────────────────────────────────
+  // Raw prompts have no constraints. Optimized ones always do.
+  const hasConstraints = /\b(must|should|avoid|only|exactly|limit|ensure|require|include|exclude|focus|restrict|prioritize|specify|maintain|follow|adhere|never|always|minimum|maximum|don't|do not|no more than|at least|keep|format)\b/i.test(trimmed);
+  score += hasConstraints ? 30 : 0;
+
+  // ── 3. STRUCTURE (0-15) ──────────────────────────────────────
+  // Raw prompts are single-line. Optimized ones have clear structure.
   const hasLineBreaks = trimmed.includes('\n');
-  const hasQuestion = trimmed.includes('?');
-  const structurePoints = [hasNumbers, hasBullets, hasLineBreaks, hasQuestion].filter(Boolean).length;
-  score += Math.min(25, structurePoints * 8);
+  const hasBullets = /^[\s]*[-*•]\s/m.test(trimmed) || /\n[-*•]\s/m.test(trimmed);
+  const hasHeadings = /^#{1,3}\s/m.test(trimmed) || /\n#{1,3}\s/m.test(trimmed);
+  const hasNumberedSteps = /\d+[\.\)]\s|\b(step\s*\d|1\.|2\.)\b/i.test(trimmed);
+  const structurePoints = [hasLineBreaks, hasBullets, hasHeadings, hasNumberedSteps].filter(Boolean).length;
+  score += Math.min(15, structurePoints * 6);
 
-  // Specificity (0-25): action verbs + fewer vague words
+  // ── 4. SPECIFICITY (0-8) ─────────────────────────────────────
   const vagueWords = /\b(thing|stuff|something|do|make|get|help)\b/gi;
   const vagueCount = (trimmed.match(vagueWords) || []).length;
-  const actionVerbs = /\b(write|create|explain|analyze|compare|summarize|list|describe|define|refactor|debug|fix)\b/gi;
+  const actionVerbs = /\b(write|create|explain|analyze|compare|summarize|list|describe|define|refactor|debug|fix|implement|build|design|generate|develop|optimize|configure|test|review|document|calculate|format|convert|validate|extract|identify|evaluate|produce|construct|integrate|deploy)\b/gi;
   const actionCount = (trimmed.match(actionVerbs) || []).length;
-  score += Math.min(25, Math.max(0, 10 + actionCount * 3 - vagueCount * 2));
+  score += Math.min(8, Math.max(0, 2 + actionCount * 2 - vagueCount * 1));
 
-  // Constraints & format hints (0-10)
-  const hasConstraints =
-    /\b(must|should|avoid|only|exactly|limit|format|json|markdown|bullet|steps?)\b/i.test(trimmed);
-  score += hasConstraints ? 10 : 0;
-
-  // Word variety (0-5)
-  const uniqueWords = new Set(words.map((w) => w.toLowerCase())).size;
-  const varietyRatio = wordCount > 0 ? uniqueWords / wordCount : 0;
-  score += Math.min(5, Math.round(varietyRatio * 8));
+  // ── 5. TECHNICAL RICHNESS (0-2) ──────────────────────────────
+  const hasTechnical = /\b(api|json|html|css|javascript|typescript|python|sql|function|class|array|object|database|endpoint|variable|module|component|interface|algorithm|framework|library|async|promise|query|schema|type|parameter|react|node|http|rest|graphql)\b/gi.test(trimmed);
+  score += hasTechnical ? 2 : 0;
 
   return Math.min(100, Math.max(0, Math.round(score)));
 }
-

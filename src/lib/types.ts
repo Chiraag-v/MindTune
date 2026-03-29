@@ -1,6 +1,6 @@
-export type Mode = 'developer' | 'research' | 'beginner' | 'product' | 'marketing';
+export type Mode = 'developer' | 'beginner' | 'specific' | 'step-by-step';
 
-export type ProviderId = 'google';
+export type ProviderId = 'google' | 'openai' | 'anthropic' | 'groq';
 
 export type OptimizeVersion = 'v1' | 'v2';
 
@@ -8,6 +8,7 @@ export interface OptimizeRequest {
   prompt: string;
   mode: Mode;
   session_id?: string;
+  user_id?: string;
   version?: OptimizeVersion;
   provider?: ProviderId;
   /**

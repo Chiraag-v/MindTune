@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 
 import { splitOptimizedOutput } from '@/lib/delimiter';
+import { scorePrompt } from '@/lib/promptScore';
 import {
   postOptimizeStream,
   postOptimizeSync,
@@ -12,12 +13,7 @@ import type { Mode, OptimizeVersion, ProviderId } from '@/lib/types';
 import type { OptimizationLogInsert } from '@/lib/client/optimizationLogs';
 
 async function safeLogOptimization(insert: OptimizationLogInsert) {
-  try {
-    const mod = await import('@/lib/client/optimizationLogs');
-    await mod.logOptimization(insert);
-  } catch {
-    // ignore logging failures
-  }
+  // Client-side logging removed in favor of server-side logging
 }
 
 interface OptimizeState {
@@ -28,6 +24,7 @@ interface OptimizeState {
   sessionId: string;
   provider: ProviderId;
   model: string;
+  storedScore: number | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -47,6 +44,7 @@ function initialState(): OptimizeState {
     sessionId: '',
     provider: DEFAULT_PROVIDER,
     model: '',
+    storedScore: null,
     isLoading: false,
     error: null,
   };
@@ -70,6 +68,7 @@ export function useOptimizePrompt() {
       version: OptimizeVersion;
       apiKey?: string;
       model?: string;
+      userId?: string;
     }) => {
       const prompt = args.prompt.trim();
       if (!prompt) return;
@@ -88,6 +87,7 @@ export function useOptimizePrompt() {
         sessionId,
         provider: args.provider,
         model: '',
+        storedScore: null, // reset so live score animates on re-optimization
         isLoading: true,
         error: null,
       }));
@@ -98,6 +98,7 @@ export function useOptimizePrompt() {
             prompt,
             mode: args.mode,
             session_id: sessionId,
+            user_id: args.userId,
             version: 'v1',
             provider: args.provider,
             apiKey: args.apiKey,
@@ -116,16 +117,8 @@ export function useOptimizePrompt() {
             isLoading: false,
           }));
 
-          void safeLogOptimization({
-            session_id: sessionId,
-            mode: args.mode,
-            version: 'v1',
-            provider: 'google',
-            model: data.model ?? '',
-            prompt_length: prompt.length,
-            optimized_length: data.optimizedText.length,
-            explanation_length: data.explanation.length + data.changes.length,
-          });
+          // Client-side logging removed
+          // void safeLogOptimization({ ... });
 
           return;
         }
@@ -134,6 +127,7 @@ export function useOptimizePrompt() {
           prompt,
           mode: args.mode,
           session_id: sessionId,
+          user_id: args.userId,
           version: 'v2',
           provider: args.provider,
           apiKey: args.apiKey,
@@ -158,16 +152,12 @@ export function useOptimizePrompt() {
         });
 
         const { optimizedText, explanation, changes } = splitOptimizedOutput(buffer);
-        void safeLogOptimization({
-          session_id: sessionId,
-          mode: args.mode,
-          version: 'v2',
-          provider: 'google',
-          model,
-          prompt_length: prompt.length,
-          optimized_length: optimizedText.length,
-          explanation_length: explanation.length + changes.length,
-        });
+        // Client-side logging removed
+        // void safeLogOptimization({ ... });
+
+        // Update server-inserted row with prompt_score (streaming inserts at start before we have result)
+        // Moved to server-side onFinish
+        // void fetch('/api/optimization-log', ...);
 
         setState((s) => ({ ...s, isLoading: false }));
       } catch (err) {
@@ -184,6 +174,30 @@ export function useOptimizePrompt() {
     [],
   );
 
-  return { ...state, optimize, reset };
+  const loadSession = useCallback((data: {
+    optimizedText: string;
+    explanation: string;
+    changes: string;
+    sessionId: string;
+    provider: ProviderId;
+    model: string;
+    storedScore?: number | null;
+  }) => {
+    setState((s) => ({
+      ...s,
+      optimizedText: data.optimizedText,
+      explanation: data.explanation,
+      changes: data.changes,
+      rawText: '',
+      sessionId: data.sessionId,
+      provider: data.provider,
+      model: data.model,
+      storedScore: data.storedScore ?? null,
+      isLoading: false,
+      error: null,
+    }));
+  }, []);
+
+  return { ...state, optimize, reset, loadSession };
 }
 

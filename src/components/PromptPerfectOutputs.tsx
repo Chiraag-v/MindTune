@@ -3,6 +3,8 @@
 import { ExplanationPanel } from '@/components/ExplanationPanel';
 import { FeedbackButtons } from '@/components/FeedbackButtons';
 import { OutputCard } from '@/components/OutputCard';
+import { PromptQABox } from '@/components/PromptQABox';
+import type { ProviderId } from '@/lib/types';
 
 interface PromptPerfectOutputsProps {
   optimizedText: string;
@@ -11,6 +13,10 @@ interface PromptPerfectOutputsProps {
   sessionId: string;
   mode: string;
   isLoading: boolean;
+  provider: ProviderId;
+  apiKey: string;
+  initialQAMessages?: { role: 'user' | 'assistant'; content: string }[];
+  initialFeedback?: { rating?: 'up' | 'down' | null; text?: string };
 }
 
 export function PromptPerfectOutputs(props: PromptPerfectOutputsProps) {
@@ -30,18 +36,34 @@ export function PromptPerfectOutputs(props: PromptPerfectOutputsProps) {
           emptyText="A detailed explanation of the optimized prompt will show up here."
         />
       </div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col gap-4">
+        <div className="min-w-0">
           <ExplanationPanel explanation={props.changes} />
         </div>
         {props.optimizedText && !props.isLoading && (
-          <div className="shrink-0">
-            <FeedbackButtons
-              sessionId={props.sessionId}
-              mode={props.mode}
-              disabled={props.isLoading}
-            />
-          </div>
+          <>
+            <div className="w-full">
+              <PromptQABox
+                key={props.sessionId}
+                optimizedPrompt={props.optimizedText}
+                explanation={props.explanation}
+                provider={props.provider}
+                apiKey={props.apiKey}
+                initialMessages={props.initialQAMessages}
+                sessionId={props.sessionId}
+              />
+            </div>
+            <div className="w-full">
+              <FeedbackButtons
+                key={props.sessionId}
+                sessionId={props.sessionId}
+                mode={props.mode}
+                disabled={props.isLoading}
+                initialRating={props.initialFeedback?.rating}
+                initialFeedbackText={props.initialFeedback?.text}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

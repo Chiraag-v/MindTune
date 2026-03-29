@@ -1,4 +1,7 @@
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
+import { openai, createOpenAI } from '@ai-sdk/openai';
+import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { groq, createGroq } from '@ai-sdk/groq';
 
 import type { ProviderId } from './types';
 
@@ -9,31 +12,76 @@ export interface ProviderSelection {
 }
 
 export function hasServerKey(provider: ProviderId): boolean {
-  if (provider !== 'google') return false;
-  return Boolean(process.env.GOOGLE_API_KEY);
+  switch (provider) {
+    case 'google':
+      return Boolean(process.env.GOOGLE_API_KEY);
+    case 'openai':
+      return Boolean(process.env.OPENAI_API_KEY);
+    case 'anthropic':
+      return Boolean(process.env.ANTHROPIC_API_KEY);
+    case 'groq':
+      return Boolean(process.env.GROQ_API_KEY);
+    default:
+      return false;
+  }
 }
 
 function getProviderInstance(provider: ProviderId, apiKey?: string) {
   const key = apiKey?.trim();
 
-  if (provider !== 'google') return google;
-
-  // Single source of truth: GOOGLE_API_KEY
-  // (Optional) apiKey can override via BYOK in request body.
-  const effectiveKey = key || process.env.GOOGLE_API_KEY;
-  if (!effectiveKey) return google;
-  return createGoogleGenerativeAI({ apiKey: effectiveKey });
+  switch (provider) {
+    case 'google': {
+      const effectiveKey = key || process.env.GOOGLE_API_KEY;
+      if (!effectiveKey) return google;
+      return createGoogleGenerativeAI({ apiKey: effectiveKey });
+    }
+    case 'openai': {
+      const effectiveKey = key || process.env.OPENAI_API_KEY;
+      if (!effectiveKey) return openai;
+      return createOpenAI({ apiKey: effectiveKey });
+    }
+    case 'anthropic': {
+      const effectiveKey = key || process.env.ANTHROPIC_API_KEY;
+      if (!effectiveKey) return anthropic;
+      return createAnthropic({ apiKey: effectiveKey });
+    }
+    case 'groq': {
+      const effectiveKey = key || process.env.GROQ_API_KEY;
+      if (!effectiveKey) return groq;
+      return createGroq({ apiKey: effectiveKey });
+    }
+    default:
+      return google;
+  }
 }
 
 export function getDefaultModels(provider: ProviderId): string[] {
-  if (provider !== 'google') return [];
-  return [
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-2.5-pro',
-    'gemini-3-flash-preview',
-    'gemini-3-pro-preview',
-  ];
+  switch (provider) {
+    case 'google':
+      return [
+        'gemini-2.5-flash', // User requested default
+        'gemini-2.5-flash-lite',
+        'gemini-2.5-pro',
+        'gemini-2.0-flash',
+        'gemini-1.5-pro',
+      ];
+    case 'openai':
+      return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+    case 'anthropic':
+      return [
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022',
+        'claude-3-opus-20240229',
+      ];
+    case 'groq':
+      return [
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'mixtral-8x7b-32768',
+      ];
+    default:
+      return [];
+  }
 }
 
 export function isRetryableProviderError(err: unknown): boolean {
@@ -44,7 +92,10 @@ export function isRetryableProviderError(err: unknown): boolean {
     msg.toLowerCase().includes('quota') ||
     msg.includes('RESOURCE_EXHAUSTED') ||
     msg.includes('404') ||
-    msg.toLowerCase().includes('not found')
+    msg.toLowerCase().includes('not found') ||
+    msg.toLowerCase().includes('does not exist') ||
+    msg.includes('500') ||
+    msg.includes('503')
   );
 }
 
@@ -58,4 +109,3 @@ export function getLanguageModel(selection: ProviderSelection, modelId: string) 
   // All provider instances are callable: provider(modelId)
   return instance(modelId);
 }
-

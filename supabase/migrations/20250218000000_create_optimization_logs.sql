@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS public.optimization_logs (
   prompt_length integer NOT NULL DEFAULT 0,
   optimized_length integer NOT NULL DEFAULT 0,
   explanation_length integer NOT NULL DEFAULT 0,
-  rating text,
   feedback text,
+  feedback_text text,
+  prompt_score integer,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -25,7 +26,7 @@ CREATE POLICY "Allow anon insert" ON public.optimization_logs
   FOR INSERT TO anon
   WITH CHECK (true);
 
--- Allow anon to UPDATE (for feedback API - updates rating by session_id)
+-- Allow anon to UPDATE (for feedback API - updates feedback by session_id)
 CREATE POLICY "Allow anon update" ON public.optimization_logs
   FOR UPDATE TO anon
   USING (true)

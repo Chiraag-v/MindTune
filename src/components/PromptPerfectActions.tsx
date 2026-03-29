@@ -21,7 +21,7 @@ export function PromptPerfectActions(props: PromptPerfectActionsProps) {
         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
       >
         <Sparkles className="h-4 w-4" />
-        {props.isLoading ? 'Perfecting…' : 'Perfect it'}
+        {props.isLoading ? 'Tuning…' : 'Tune it'}
       </button>
 
       <button

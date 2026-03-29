@@ -1,21 +1,24 @@
 'use client';
 
+import { useState } from 'react';
+
 import { ApiKeyField } from '@/components/ApiKeyField';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import type { Mode, OptimizeVersion } from '@/lib/types';
-import { useState } from 'react';
+import { Select } from '@/components/Select';
+import type { Mode, OptimizeVersion, ProviderId } from '@/lib/types';
 
 const MODE_OPTIONS: Array<{ value: Mode; label: string }> = [
   { value: 'developer', label: 'Developer' },
-  { value: 'research', label: 'Research' },
   { value: 'beginner', label: 'Beginner' },
-  { value: 'product', label: 'Product' },
-  { value: 'marketing', label: 'Marketing' },
+  { value: 'specific', label: 'Specific' },
+  { value: 'step-by-step', label: 'Step-by-step' },
 ];
 
-const VERSION_OPTIONS: Array<{ value: OptimizeVersion; label: string }> = [
-  { value: 'v2', label: 'Stream' },
-  { value: 'v1', label: 'Sync' },
+const PROVIDER_OPTIONS: Array<{ value: ProviderId; label: string }> = [
+  { value: 'google', label: 'Gemini 2.5 Flash (Default)' },
+  { value: 'openai', label: 'ChatGPT' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'groq', label: 'Llama' },
 ];
 
 interface PromptPerfectFormProps {
@@ -23,12 +26,12 @@ interface PromptPerfectFormProps {
   onModeChange: (value: Mode) => void;
   version: OptimizeVersion;
   onVersionChange: (value: OptimizeVersion) => void;
+  provider: ProviderId;
+  onProviderChange: (value: ProviderId) => void;
   apiKey: string;
   onApiKeyChange: (value: string) => void;
   apiKeyHelpText: string;
   apiKeyDisabled?: boolean;
-  modelOverride: string;
-  onModelOverrideChange: (value: string) => void;
   disabled?: boolean;
 }
 
@@ -55,43 +58,39 @@ export function PromptPerfectForm(props: PromptPerfectFormProps) {
 
       {showAdvanced ? (
         <div className="rounded-3xl border border-zinc-200 bg-white/60 p-4 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/40">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-2">
+              <span className="text-xs font-medium tracking-wide text-zinc-600 dark:text-zinc-400">
+                AI Provider
+              </span>
+              <Select
+                value={props.provider}
+                onChange={props.onProviderChange}
+                options={PROVIDER_OPTIONS}
+                disabled={props.disabled}
+              />
+            </label>
+
             <ApiKeyField
+              label={props.provider === 'google' ? 'API Key (Optional)' : 'BYOK API Key'}
               value={props.apiKey}
               onChange={props.onApiKeyChange}
               helpText={props.apiKeyHelpText}
               disabled={props.apiKeyDisabled}
+              provider={props.provider}
+              placeholder={
+                props.provider === 'google'
+                  ? 'AIzaSy...'
+                  : props.provider === 'openai'
+                    ? 'sk-...'
+                    : props.provider === 'anthropic'
+                      ? 'sk-ant-...'
+                      : 'gsk_...'
+              }
             />
-
-            <div className="flex flex-col gap-4">
-              <SegmentedControl
-                label="Engine"
-                value={props.version}
-                onChange={props.onVersionChange}
-                options={VERSION_OPTIONS}
-                disabled={props.disabled}
-              />
-
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-medium tracking-wide text-zinc-600 dark:text-zinc-400">
-                  Model override (optional)
-                </span>
-                <input
-                  value={props.modelOverride}
-                  onChange={(e) => props.onModelOverrideChange(e.target.value)}
-                  placeholder="gemini-2.5-flash"
-                  disabled={props.disabled}
-                  className="h-11 w-full rounded-2xl border border-zinc-200 bg-white/70 px-3 text-sm text-zinc-900 shadow-sm outline-none backdrop-blur transition focus:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-50"
-                />
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Leave empty to use the fallback list.
-                </span>
-              </label>
-            </div>
           </div>
         </div>
       ) : null}
     </div>
   );
 }
-

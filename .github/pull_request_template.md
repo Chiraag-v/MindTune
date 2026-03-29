@@ -8,7 +8,7 @@
 [If UI changes, add before/after screenshots]
 
 ## Checklist
-- [ ] Tests pass locally (`npm test` or `pytest`)
 - [ ] No hardcoded API keys or secrets
-- [ ] Commit messages follow conventional format (feat:/fix:/test:/docs:)
-- [ ] Posted PR link in team Discord channel
+- [ ] `.env` is not committed
+- [ ] Linter passes (`npm run lint`)
+- [ ] Tested locally (`npm run dev`)

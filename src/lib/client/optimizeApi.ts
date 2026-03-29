@@ -4,6 +4,7 @@ export interface OptimizeApiArgs {
   prompt: string;
   mode: Mode;
   session_id?: string;
+  user_id?: string;
   version?: 'v1' | 'v2';
   provider: ProviderId;
   apiKey?: string;
@@ -49,6 +50,7 @@ export async function postOptimizeSync(args: OptimizeApiArgs): Promise<OptimizeS
       prompt: args.prompt.trim(),
       mode: args.mode,
       session_id: args.session_id?.trim() || undefined,
+      user_id: args.user_id?.trim() || undefined,
       version: args.version,
       provider: args.provider,
       apiKey: trimOrUndefined(args.apiKey),
@@ -73,6 +75,7 @@ export async function postOptimizeStream(args: OptimizeApiArgs): Promise<{
       prompt: args.prompt.trim(),
       mode: args.mode,
       session_id: args.session_id?.trim() || undefined,
+      user_id: args.user_id?.trim() || undefined,
       version: args.version,
       provider: args.provider,
       apiKey: trimOrUndefined(args.apiKey),

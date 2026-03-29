@@ -8,7 +8,16 @@ export function getSupabaseClient(): SupabaseClient | null {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  if (!url || !anonKey) return null;
+  
+  if (!url || !anonKey) {
+    console.warn('Supabase credentials missing');
+    return null;
+  }
+
+  // Debug log to verify URL is loaded
+  if (typeof window !== 'undefined' && !cached) {
+    console.log('Initializing Supabase client with URL:', url);
+  }
 
   cached = createClient(url, anonKey);
   return cached;
