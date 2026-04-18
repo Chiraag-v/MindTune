@@ -19,7 +19,12 @@ export function getSupabaseClient(): SupabaseClient | null {
     console.log('Initializing Supabase client with URL:', url);
   }
 
-  cached = createClient(url, anonKey);
+  cached = createClient(url, anonKey, {
+    auth: {
+      // Default 10s is too tight with Turbopack/HMR + multiple tabs (Navigator LockManager contention).
+      lockAcquireTimeout: 60_000,
+    },
+  });
   return cached;
 }
 

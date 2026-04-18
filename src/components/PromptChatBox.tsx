@@ -117,30 +117,37 @@ export function PromptChatBox({ value, onChange, disabled, onAutoTune }: PromptC
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
 
   return (
-    <div className="rounded-[28px] border border-zinc-200 bg-white/50 p-5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/30 md:p-7">
+    <div className={`card-animated-border rounded-[28px] border bg-white/50 p-5 shadow-sm backdrop-blur transition-all duration-300 dark:bg-zinc-950/30 md:p-7 ${
+      isListening
+        ? 'border-rose-400/50 shadow-rose-500/10 shadow-lg'
+        : 'border-zinc-200/80 hover:border-violet-300/30 hover:shadow-violet-500/5 dark:border-zinc-800/80 dark:hover:border-violet-800/30'
+    }`}>
       {/* Header row */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-xs font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">
+          <div className="text-xs font-semibold tracking-widest uppercase text-zinc-500 dark:text-zinc-500">
             Prompt
           </div>
-          {/* Recording status badge */}
           {isListening && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-rose-500">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
               Listening…
             </span>
           )}
           {isProcessing && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
-              <Sparkles className="h-3 w-3" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-violet-500">
+              <span className="inline-flex gap-0.5">
+                <span className="thinking-dot h-1 w-1 rounded-full bg-violet-500" />
+                <span className="thinking-dot h-1 w-1 rounded-full bg-violet-500" />
+                <span className="thinking-dot h-1 w-1 rounded-full bg-violet-500" />
+              </span>
               Tuning…
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="text-xs text-zinc-400 dark:text-zinc-600 tabular-nums">
             {wordCount > 0 ? `${wordCount} words` : ' '}
           </div>
 
@@ -151,20 +158,16 @@ export function PromptChatBox({ value, onChange, disabled, onAutoTune }: PromptC
               onClick={toggleRecording}
               disabled={disabled || isProcessing}
               title={isListening ? 'Stop recording' : 'Speak your prompt'}
-              className={`relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-all disabled:opacity-40 ${
+              className={`relative inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-all duration-200 disabled:opacity-40 ${
                 isListening
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30 hover:bg-rose-600'
-                  : 'border border-zinc-200 bg-white/70 text-zinc-600 hover:bg-white hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
+                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/40'
+                  : 'border border-zinc-200/80 bg-white/60 text-zinc-500 hover:border-violet-300/50 hover:bg-white hover:text-violet-600 hover:shadow-md hover:shadow-violet-500/10 dark:border-zinc-700/80 dark:bg-zinc-900/50 dark:text-zinc-500 dark:hover:border-violet-700/50 dark:hover:bg-zinc-800 dark:hover:text-violet-400'
               }`}
             >
-              {/* Pulsing ring when listening */}
               {isListening && (
-                <span className="absolute inset-0 animate-ping rounded-full bg-rose-400 opacity-30" />
+                <span className="absolute inset-0 animate-ping rounded-full bg-rose-400 opacity-25" />
               )}
-              {isListening
-                ? <MicOff className="h-3.5 w-3.5" />
-                : <Mic className="h-3.5 w-3.5" />
-              }
+              {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
             </button>
           )}
         </div>
@@ -174,21 +177,18 @@ export function PromptChatBox({ value, onChange, disabled, onAutoTune }: PromptC
       <div className="relative">
         <textarea
           value={isListening ? value + (interimText ? ` ${interimText}` : '') : value}
-          onChange={(e) => {
-            if (!isListening) onChange(e.target.value);
-          }}
+          onChange={(e) => { if (!isListening) onChange(e.target.value); }}
           disabled={disabled || isListening}
           placeholder={isListening ? 'Speak now… MindTune is listening.' : 'Speak or type messy. Get clarity.'}
           rows={16}
-          className={`min-h-[420px] w-full resize-none rounded-3xl border px-5 py-4 text-sm leading-7 shadow-sm backdrop-blur outline-none transition ${
+          className={`min-h-[420px] w-full resize-none rounded-2xl border px-5 py-4 text-sm leading-7 backdrop-blur outline-none transition-all duration-300 ${
             isListening
-              ? 'border-rose-300 bg-rose-50/50 text-zinc-900 dark:border-rose-800/50 dark:bg-rose-950/10 dark:text-zinc-50'
-              : 'border-zinc-200 bg-white/70 text-zinc-900 focus:border-zinc-400 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-50'
+              ? 'border-rose-400/40 bg-rose-50/30 text-zinc-900 placeholder:text-rose-400/50 dark:bg-rose-950/10 dark:text-zinc-50'
+              : 'border-zinc-200/60 bg-white/60 text-zinc-900 placeholder:text-zinc-400 focus:border-violet-400/50 focus:shadow-lg focus:shadow-violet-500/5 focus:bg-white/80 disabled:opacity-50 dark:border-zinc-800/60 dark:bg-zinc-950/40 dark:text-zinc-50 dark:placeholder:text-zinc-600 dark:focus:border-violet-700/50 dark:focus:bg-zinc-950/60'
           }`}
         />
-        {/* Interim text overlay hint */}
         {isListening && interimText && (
-          <div className="absolute bottom-4 left-5 right-5 text-xs italic text-zinc-400 dark:text-zinc-500 pointer-events-none">
+          <div className="pointer-events-none absolute bottom-4 left-5 right-5 text-xs italic text-rose-400/70">
             {interimText}
           </div>
         )}

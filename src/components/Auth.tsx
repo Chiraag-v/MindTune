@@ -1,16 +1,23 @@
 'use client';
 
+import { Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { getSupabaseClient } from '@/lib/client/supabase';
 
+const inputClass = `block w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-white placeholder-zinc-600 backdrop-blur transition-all duration-200
+  focus:border-violet-500/50 focus:bg-white/8 focus:outline-none focus:ring-2 focus:ring-violet-500/20`;
+
+const labelClass = 'block text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-2';
+
 export function Auth({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot_password'>('login');
-  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [message, setMessage]   = useState<string | null>(null);
+  const [mode, setMode]         = useState<'login' | 'signup' | 'forgot_password'>('login');
+  const [showPassword, setShowPassword] = useState(false);
 
   const switchMode = (next: 'login' | 'signup' | 'forgot_password') => {
     setMode(next);
@@ -19,6 +26,7 @@ export function Auth({ onLogin }: { onLogin: () => void }) {
     setEmail('');
     setPassword('');
     setUsername('');
+    setShowPassword(false);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -28,11 +36,7 @@ export function Auth({ onLogin }: { onLogin: () => void }) {
     setMessage(null);
 
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setError('Supabase client not initialized');
-      setLoading(false);
-      return;
-    }
+    if (!supabase) { setError('Supabase client not initialized'); setLoading(false); return; }
 
     try {
       if (mode === 'forgot_password') {
@@ -43,43 +47,22 @@ export function Auth({ onLogin }: { onLogin: () => void }) {
         setMessage('If an account exists for this email, you will receive a password reset link.');
 
       } else if (mode === 'signup') {
-        // Check username uniqueness first
         const trimmedUsername = username.trim();
-        if (!trimmedUsername) {
-          setError('Please enter a username.');
-          setLoading(false);
-          return;
-        }
-        if (trimmedUsername.length < 3) {
-          setError('Username must be at least 3 characters.');
-          setLoading(false);
-          return;
-        }
+        if (!trimmedUsername) { setError('Please enter a username.'); setLoading(false); return; }
+        if (trimmedUsername.length < 3) { setError('Username must be at least 3 characters.'); setLoading(false); return; }
 
         const { data: existing } = await supabase
-          .from('personal_info')
-          .select('id')
-          .ilike('username', trimmedUsername)
-          .maybeSingle();
-
-        if (existing) {
-          setError('That username is already taken. Please choose another.');
-          setLoading(false);
-          return;
-        }
+          .from('personal_info').select('id').ilike('username', trimmedUsername).maybeSingle();
+        if (existing) { setError('That username is already taken. Please choose another.'); setLoading(false); return; }
 
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { username: trimmedUsername } },
+          email, password, options: { data: { username: trimmedUsername } },
         });
         if (error) throw error;
 
-        if (data.session) {
-          onLogin();
-        } else if (data.user && data.user.identities && data.user.identities.length === 0) {
-          setError('User already exists. Please login instead.');
-          switchMode('login');
+        if (data.session) { onLogin(); }
+        else if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setError('User already exists. Please login instead.'); switchMode('login');
         } else {
           setMessage('Check your email for the confirmation link!');
         }
@@ -90,219 +73,176 @@ export function Auth({ onLogin }: { onLogin: () => void }) {
         onLogin();
       }
     } catch (err) {
-      console.error('Auth error:', err);
       const msg = err instanceof Error ? err.message : 'An error occurred';
-      if (msg === 'Failed to fetch') {
+      if (msg === 'Failed to fetch')
         setError('Connection failed. Please check your internet or if the Supabase project is active.');
-      } else if (msg.toLowerCase().includes('invalid login credentials')) {
+      else if (msg.toLowerCase().includes('invalid login credentials'))
         setError('Incorrect email or password. Please try again, or use "Forgot password?" to reset it.');
-      } else if (msg.toLowerCase().includes('email not confirmed')) {
+      else if (msg.toLowerCase().includes('email not confirmed'))
         setError('Please confirm your email before logging in. Check your inbox for a confirmation link.');
-      } else {
-        setError(msg);
-      }
+      else setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  if (mode === 'signup') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-        <div className="w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-              Create your account
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Free forever. No credit card required.
-            </p>
-          </div>
-
-          <form className="space-y-5" onSubmit={handleAuth}>
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Name
-              </label>
-              <input
-                id="username"
-                type="text"
-                autoComplete="username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="block w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500 sm:text-sm"
-                placeholder="Your name"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500 sm:text-sm"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500 sm:text-sm"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-                {error}
-              </div>
-            )}
-            {message && (
-              <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                {message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:opacity-50 transition-colors dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Already have an account?{' '}
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className="font-medium text-zinc-900 hover:text-zinc-700 dark:text-zinc-200 dark:hover:text-zinc-50"
-            >
-              Log in →
-            </button>
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const title = mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Reset password';
+  const subtitle = mode === 'login' ? 'Login to access your prompt history'
+    : mode === 'signup' ? 'Free forever. No credit card required.'
+    : 'Enter your email to receive a reset link';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            {mode === 'login' ? 'Welcome back' : 'Reset Password'}
-          </h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            {mode === 'login'
-              ? 'Login to access your prompt history'
-              : 'Enter your email to receive a reset link'}
-          </p>
-        </div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-950 px-4">
 
-        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400 sm:text-sm"
-                placeholder="Email address"
-              />
+      {/* ── Ambient orbs ── */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl animate-glow-pulse" />
+        <div className="absolute right-1/4 bottom-1/4 h-80 w-80 rounded-full bg-pink-600/10 blur-3xl animate-glow-pulse delay-300" />
+        <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/8 blur-3xl animate-glow-pulse delay-500" />
+      </div>
+
+      {/* ── Card ── */}
+      <div className="relative z-10 w-full max-w-md animate-fade-up">
+
+        {/* Gradient border wrapper */}
+        <div className="rounded-3xl p-px bg-gradient-to-br from-violet-500/30 via-transparent to-pink-500/20">
+          <div className="rounded-3xl bg-zinc-900/90 backdrop-blur-xl p-8 shadow-2xl shadow-black/60">
+
+            {/* Logo */}
+            <div className="mb-8 flex flex-col items-center gap-4">
+              <div className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/20 to-pink-500/20 shadow-lg shadow-violet-500/10">
+                <Sparkles className="h-5 w-5 text-violet-400" />
+                <span className="absolute inset-0 rounded-2xl border border-dashed border-violet-400/20 animate-spin-slow" />
+              </div>
+              <div className="text-center">
+                <h1 className="text-2xl font-black tracking-tight">
+                  <span className="gradient-text">{title}</span>
+                </h1>
+                <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
+              </div>
             </div>
-            {mode !== 'forgot_password' && (
+
+            {/* Form */}
+            <form className="space-y-4" onSubmit={handleAuth}>
+
+              {mode === 'signup' && (
+                <div>
+                  <label htmlFor="username" className={labelClass}>Name</label>
+                  <input
+                    id="username" type="text" autoComplete="username" required
+                    value={username} onChange={(e) => setUsername(e.target.value)}
+                    className={inputClass} placeholder="Your name"
+                  />
+                </div>
+              )}
+
               <div>
-                <label htmlFor="password" className="sr-only">Password</label>
+                <label htmlFor="email" className={labelClass}>Email</label>
                 <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="relative block w-full rounded-xl border border-zinc-300 px-4 py-3 text-zinc-900 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-400 sm:text-sm"
-                  placeholder="Password"
+                  id="email" type="email" autoComplete="email" required
+                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass} placeholder="you@example.com"
                 />
               </div>
-            )}
-          </div>
 
-          {mode === 'login' && (
-            <div className="flex items-center justify-end">
+              {mode !== 'forgot_password' && (
+                <div>
+                  <label htmlFor="password" className={labelClass}>Password</label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${inputClass} pr-11`}
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-violet-400"
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword
+                        ? <EyeOff className="h-4 w-4" />
+                        : <Eye className="h-4 w-4" />
+                      }
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mode === 'login' && (
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => switchMode('forgot_password')}
+                    className="text-xs font-medium text-zinc-500 transition hover:text-violet-400">
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-400">
+                  {error}
+                </div>
+              )}
+              {message && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-400">
+                  {message}
+                </div>
+              )}
+
+              {/* Submit */}
               <button
-                type="button"
-                onClick={() => switchMode('forgot_password')}
-                className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                type="submit" disabled={loading}
+                className="group relative mt-2 w-full overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition-all duration-300 hover:shadow-violet-500/40 hover:shadow-xl disabled:opacity-50 btn-shimmer"
               >
-                Forgot password?
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="inline-flex gap-1">
+                      <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-white" />
+                      <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-white" />
+                      <span className="thinking-dot h-1.5 w-1.5 rounded-full bg-white" />
+                    </span>
+                    Processing…
+                  </span>
+                ) : (
+                  mode === 'login' ? 'Login' : mode === 'signup' ? 'Sign Up' : 'Send Reset Link'
+                )}
               </button>
-            </div>
-          )}
+            </form>
 
-          {error && (
-            <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-              {error}
+            {/* Footer links */}
+            <div className="mt-6 text-center text-sm text-zinc-600">
+              {mode === 'login' && (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <button type="button" onClick={() => switchMode('signup')}
+                    className="font-semibold text-violet-400 transition hover:text-violet-300">
+                    Sign up →
+                  </button>
+                </>
+              )}
+              {mode === 'signup' && (
+                <>
+                  Already have an account?{' '}
+                  <button type="button" onClick={() => switchMode('login')}
+                    className="font-semibold text-violet-400 transition hover:text-violet-300">
+                    Log in →
+                  </button>
+                </>
+              )}
+              {mode === 'forgot_password' && (
+                <button type="button" onClick={() => switchMode('login')}
+                  className="font-semibold text-violet-400 transition hover:text-violet-300">
+                  ← Back to Login
+                </button>
+              )}
             </div>
-          )}
-          {message && (
-            <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-              {message}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative flex w-full justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {loading ? 'Processing...' : mode === 'login' ? 'Login' : 'Send Reset Link'}
-            </button>
           </div>
-        </form>
-
-        <div className="text-center">
-          {mode === 'forgot_password' ? (
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              Back to Login
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => switchMode('signup')}
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              Don&apos;t have an account? Sign up
-            </button>
-          )}
         </div>
       </div>
     </div>
