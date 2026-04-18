@@ -15,13 +15,16 @@ import { useApiConfig } from '@/hooks/useApiConfig';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { useOptimizePrompt } from '@/hooks/useOptimizePrompt';
 import { getSupabaseClient } from '@/lib/client/supabase';
+import { useAuthUserEmail } from '@/hooks/useAuthUserEmail';
 import type { Mode, OptimizeVersion, ProviderId } from '@/lib/types';
 
 import { SettingsModal } from '@/components/SettingsModal';
+import { EditProfileModal } from '@/components/EditProfileModal';
 import { ShareButton } from '@/components/ShareButton';
 
 function PromptPerfectMain({ session, onLogout }: { session: Session; onLogout: () => void }) {
   const userId = session.user.id;
+  const authEmail = useAuthUserEmail(session);
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<Mode>('developer');
   // Always use v2 (Stream)
@@ -31,6 +34,7 @@ function PromptPerfectMain({ session, onLogout }: { session: Session; onLogout: 
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   useEffect(() => {
     // First try session metadata (available immediately after signup)
@@ -103,15 +107,22 @@ function PromptPerfectMain({ session, onLogout }: { session: Session; onLogout: 
     !hasServerKey(provider) && currentKey.hydrated && currentKey.value.trim().length === 0;
 
   return (
-    <div className="min-h-screen w-full px-5 py-10 md:px-10 md:py-12">
-      <div className="w-full">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-zinc-950 px-5 py-10 md:px-10 md:py-12">
+      {/* Ambient background orbs matching landing page */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-violet-600/8 blur-3xl animate-glow-pulse" />
+        <div className="absolute right-1/4 top-1/3 h-96 w-96 rounded-full bg-pink-600/6 blur-3xl animate-glow-pulse delay-300" />
+        <div className="absolute bottom-1/4 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-indigo-600/6 blur-3xl animate-glow-pulse delay-500" />
+      </div>
+      <div className="relative z-10 w-full">
         <div className="mb-10">
           <PromptPerfectHeader 
             onHistoryClick={() => setIsHistoryOpen(true)} 
             onSettingsClick={() => setIsSettingsOpen(true)}
+            onEditProfileClick={() => setIsEditProfileOpen(true)}
             onLogout={onLogout}
             onLogoClick={() => window.location.href = '/welcome'}
-            userEmail={session.user.email}
+            userEmail={authEmail}
             username={username}
           />
         </div>
@@ -120,6 +131,14 @@ function PromptPerfectMain({ session, onLogout }: { session: Session; onLogout: 
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           onLogout={onLogout}
+        />
+
+        <EditProfileModal
+          isOpen={isEditProfileOpen}
+          onClose={() => setIsEditProfileOpen(false)}
+          currentEmail={authEmail}
+          currentUsername={username}
+          onUsernameUpdate={(newName) => setUsername(newName)}
         />
 
         <HistoryPanel
@@ -182,7 +201,7 @@ function PromptPerfectMain({ session, onLogout }: { session: Session; onLogout: 
           />
 
           <div className="space-y-6">
-            <div className="rounded-[28px] border border-zinc-200 bg-white/50 p-5 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/30 md:p-7">
+            <div className="card-animated-border rounded-[28px] border border-white/6 bg-zinc-900/50 p-5 shadow-lg shadow-black/20 backdrop-blur-xl dark:border-zinc-800/60 md:p-7">
               <PromptPerfectForm
                 mode={mode}
                 onModeChange={setMode}

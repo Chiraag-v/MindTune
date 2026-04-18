@@ -22,7 +22,14 @@ function scoreToRgb(score: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-const SIZE = 120;
+function scoreToGlow(score: number): string {
+  const s = Math.max(0, Math.min(100, score)) / 100;
+  if (s >= 0.7) return 'rgba(34,197,94,0.25)';
+  if (s >= 0.4) return 'rgba(234,179,8,0.25)';
+  return 'rgba(239,68,68,0.20)';
+}
+
+const SIZE = 140;
 const STROKE = 10;
 const RADIUS = (SIZE - STROKE) / 2;
 const CX = SIZE / 2;
@@ -31,49 +38,92 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function PromptScoreRow({ originalText, optimizedText, storedScore }: PromptScoreRowProps) {
   const original = scorePrompt(originalText);
-  // Use the stored score from DB when loading history, otherwise calculate live
   const optimized = storedScore != null ? storedScore : scorePrompt(optimizedText);
   const delta = Math.max(0, optimized - original);
   const dashOffset = CIRCUMFERENCE * (1 - optimized / 100);
   const fillColor = scoreToRgb(optimized);
+  const glowColor = scoreToGlow(optimized);
 
   return (
-    <div className="rounded-3xl border border-zinc-200 bg-white/60 p-4 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/40">
-      <div className="flex flex-wrap items-center gap-6">
+    <div className="card-animated-border group relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/60 p-5 shadow-sm backdrop-blur transition-all duration-300 hover:border-zinc-300/60 hover:shadow-lg dark:border-zinc-800/80 dark:bg-zinc-950/40 dark:hover:border-zinc-700/60">
+
+      {/* Ambient score glow */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 rounded-3xl"
+        style={{ background: `radial-gradient(circle at 20% 50%, ${glowColor}, transparent 60%)` }}
+      />
+
+      <div className="relative flex flex-wrap items-center gap-8">
+
+        {/* ── Circular score dial ── */}
         <div className="flex flex-col items-center gap-1">
-          <span className="text-xs font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">
-            Quality score
+          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+            Quality Score
           </span>
+
           <div className="relative" style={{ width: SIZE, height: SIZE }}>
-            <svg width={SIZE} height={SIZE} className="origin-center">
-              <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="currentColor" strokeWidth={STROKE} className="text-zinc-200 dark:text-zinc-700" />
+            {/* Outer glow ring */}
+            <div
+              className="absolute inset-0 rounded-full opacity-0 transition-all duration-700 group-hover:opacity-100"
+              style={{
+                boxShadow: `0 0 32px ${glowColor}, 0 0 64px ${glowColor}`,
+                borderRadius: '50%',
+              }}
+            />
+
+            <svg width={SIZE} height={SIZE} className="origin-center drop-shadow-sm">
+              {/* Track */}
               <circle
-                cx={CX} cy={CY} r={RADIUS} fill="none"
-                stroke={fillColor} strokeWidth={STROKE} strokeLinecap="round"
-                strokeDasharray={CIRCUMFERENCE} strokeDashoffset={dashOffset}
+                cx={CX} cy={CY} r={RADIUS}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={STROKE}
+                className="text-zinc-100 dark:text-zinc-800"
+              />
+              {/* Progress arc */}
+              <circle
+                cx={CX} cy={CY} r={RADIUS}
+                fill="none"
+                stroke={fillColor}
+                strokeWidth={STROKE}
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                strokeDashoffset={dashOffset}
                 transform={`rotate(-90 ${CX} ${CY})`}
-                className="transition-all duration-700 ease-out"
+                className="transition-all duration-1000 ease-out"
+                style={{ filter: `drop-shadow(0 0 6px ${fillColor}99)` }}
               />
             </svg>
+
+            {/* Center value */}
             <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ paddingTop: '8%' }}>
-              <span className="text-2xl font-bold tabular-nums" style={{ color: fillColor }}>
+              <span className="text-3xl font-black tabular-nums leading-none" style={{ color: fillColor }}>
                 <OdometerNumber value={optimized} />
               </span>
-              <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">/ 100</span>
+              <span className="mt-0.5 text-[10px] font-medium text-zinc-400 dark:text-zinc-600">/ 100</span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">Original</span>
-            <span className="text-sm font-semibold tabular-nums" style={{ color: scoreToRgb(original) }}>
-              <OdometerNumber value={original} />
-            </span>
+        {/* ── Stats ── */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-zinc-400 dark:text-zinc-600 w-14">Original</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-bold tabular-nums" style={{ color: scoreToRgb(original) }}>
+                <OdometerNumber value={original} />
+              </span>
+              <span className="text-xs text-zinc-400">/100</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">Change</span>
-            <span className={`text-sm font-semibold tabular-nums ${delta > 0 ? 'text-emerald-500' : delta < 0 ? 'text-rose-500' : 'text-zinc-400'}`}>
+
+          <div className="h-px w-32 bg-zinc-100 dark:bg-zinc-800" />
+
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-zinc-400 dark:text-zinc-600 w-14">Change</span>
+            <span className={`text-base font-bold tabular-nums ${
+              delta > 0 ? 'text-emerald-500' : delta < 0 ? 'text-rose-500' : 'text-zinc-400'
+            }`}>
               {delta > 0 ? '+' : ''}<OdometerNumber value={delta} />
             </span>
           </div>

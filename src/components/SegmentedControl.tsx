@@ -20,13 +20,11 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium tracking-wide text-zinc-600 dark:text-zinc-400">
-          {label}
-        </span>
-      </div>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        {label}
+      </span>
       <div
-        className="grid rounded-2xl border border-zinc-200 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/50"
+        className="grid rounded-2xl border border-white/6 bg-white/3 p-1 backdrop-blur dark:border-zinc-800/60 dark:bg-zinc-950/40"
         style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
       >
         {options.map((o) => {
@@ -38,11 +36,11 @@ export function SegmentedControl<T extends string>({
               onClick={() => onChange(o.value)}
               disabled={disabled}
               className={[
-                'h-10 rounded-xl px-3 text-sm font-semibold transition',
+                'h-9 rounded-xl px-2 text-xs font-bold transition-all duration-200',
                 active
-                  ? 'bg-zinc-950 text-white shadow-sm dark:bg-white dark:text-zinc-950'
-                  : 'text-zinc-700 hover:bg-zinc-100/80 dark:text-zinc-300 dark:hover:bg-zinc-900/60',
-                disabled ? 'opacity-50 cursor-not-allowed' : '',
+                  ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/20'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5 dark:text-zinc-500 dark:hover:text-zinc-300',
+                disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
               ].join(' ')}
             >
               {o.label}
@@ -53,4 +51,3 @@ export function SegmentedControl<T extends string>({
     </div>
   );
 }
-

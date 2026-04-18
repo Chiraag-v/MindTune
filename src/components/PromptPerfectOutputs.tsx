@@ -28,12 +28,14 @@ export function PromptPerfectOutputs(props: PromptPerfectOutputsProps) {
           text={props.optimizedText}
           isLoading={props.isLoading}
           emptyText="Your optimized prompt will show up here."
+          variant="code"
         />
         <OutputCard
           title="Explanation"
           text={props.explanation}
           isLoading={props.isLoading}
           emptyText="A detailed explanation of the optimized prompt will show up here."
+          variant="prose"
         />
       </div>
       <div className="flex flex-col gap-4">
